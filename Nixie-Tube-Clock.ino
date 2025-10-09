@@ -3,15 +3,15 @@
 
 /* Include libraries */
 // For Humidity Sensor AM2320
-#include "Adafruit_AM2320.h"
-#include "Adafruit_Sensor.h"
+#include <Adafruit_AM2320.h>
+#include <Adafruit_Sensor.h>
 
 // For Real Time Clock
 #include <DS3231.h>
 #include <Wire.h>
 
 // For Rotary Encoder
-#include "RotaryEncoder.h"
+#include <RotaryEncoder.h>
 #include <Arduino.h>
 
 
