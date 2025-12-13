@@ -21,6 +21,8 @@ void show_time();
 void show_temp();
 void show_humidity();
 void display(int a, int b, int c);
+void change_mode();
+void idle_check();
 
 
 /* Define Pins */
@@ -55,6 +57,24 @@ const int fan_pin = 5;
 
 
 /* Define Objects and global variables of all components */
+
+// Mode
+#define IDLE_TIME = 30000;   // 30 seconds
+unsigned long idle_start_time;  // record the start time of idle
+
+volatile enum CLOCK_MODE {
+  SHOW_TIME,          // 0
+  SHOW_TEMP,          // 1
+  SHOW_HUMIDITY,      // 2
+  SETTING_HOUR_1,     // 3
+  SETTING_HOUR_2,     // 4
+  SETTING_MINUTE_1,   // 5
+  SETTING_MINUTE_2,   // 6
+  POISON,             // 7
+  NUMBER_OF_MODES
+} clock_mode;
+
+
 // Humidity sensor
 Adafruit_AM2320 am2320 = Adafruit_AM2320();
 float humidity = 0;
@@ -102,13 +122,55 @@ void setup() {
   myRTC.setClockMode(false);  // Real Time Clock  mode = false: 24h, mode = true: 12h
   encoder.setPosition(0);     // Rotary encoder initialize
 
-  // attachInterrupt(digitalPinToInterrupt(rotary_switch_pin), change_mode, FALLING);
+  attachInterrupt(digitalPinToInterrupt(rotary_switch_pin), change_mode, FALLING);
 }
 
 void loop() {
 
-  show_time();
+  switch(clock_mode) {
+
+    case SHOW_TIME:
+      show_time();
+      break;
+
+    case SHOW_TEMP:
+      show_temp();
+      break;
+
+    case SHOW_HUMIDITY:
+      show_humidity();
+      break;
+
+    case SETTING_HOUR_1:
+      // TODO: setting hour tens
+      break;
+
+    case SETTING_HOUR_2:
+      // TODO: setting hour ones
+      break;
+
+    case SETTING_MINUTE_1:
+      //TODO: setting minute tens
+      break;
+
+    case SETTING_MINUTE_2:
+      // TODO: setting minute ones
+      break;
+
+    case POISON:
+      // TODO: poison mode
+      break;
+      
+    default:
+      // change to default mode
+      clock_mode = SHOW_TIME;
+      break;
+
+  } // end switch
+
+  idle_check();
   delay(10);
+
 }
 
 
@@ -179,4 +241,27 @@ void display(int a, int b, int c, int d) {
 
   // wait for display
   delay(50);
+}
+
+
+void change_mode() {
+  // change to next mode
+  // if at the last mode, go back to the first mode
+  clock_mode = (clock_mode + 1) % NUMBER_OF_MODES;
+
+  // reset idle timer
+  if (clock_mode != SHOW_TIME) {
+    idle_start_time = millis();
+  }
+
+}
+
+void idle_check() {
+  // check if in idle time
+  if (clock_mode != SHOW_TIME) {
+    unsigned long current_time = millis();
+    if (current_time - idle_start_time >= IDLE_TIME) {
+      clock_mode = SHOW_TIME;
+    }
+  }
 }
