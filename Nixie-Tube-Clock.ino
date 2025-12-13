@@ -15,9 +15,16 @@
 // For Rotary Encoder
 #include <RotaryEncoder.h>
 
-
+#define NIXIE_BRIGHTNESS 0  // brightness level (0-255), 0 is the brightest
+#define LED_BRIGHTNESS 50   // brightness level (0-255), 0 is the brightest
+#define IDLE_TIME 30000     // 30 seconds
 
 /* Define functions */
+void blinking_nixie_tube(int duration_ms = 500);
+void turn_on_nixie_tube(int brightness = NIXIE_BRIGHTNESS);
+void turn_off_nixie_tube();
+
+
 void show_time();
 void show_temp();
 void show_humidity();
@@ -30,11 +37,11 @@ void poison();
 void poison_check();
 
 void set_time();
-void set_hour_1();
-void set_hour_2();
-void set_minute_1();
-void set_minute_2();
-
+void set_hour_tens();
+void set_hour_ones();
+void set_minute_tens();
+void set_minute_ones();
+int update_digit(int value, int direction, int max_value);
 
 
 /* Define Pins */
@@ -71,18 +78,18 @@ const int fan_pin = 5;
 /* Define Objects and global variables of all components */
 
 // Mode
-#define IDLE_TIME = 30000;   // 30 seconds
 unsigned long idle_start_time;  // record the start time of idle
 
 volatile enum CLOCK_MODE {
-  SHOW_TIME,          // 0
-  SHOW_TEMP,          // 1
-  SHOW_HUMIDITY,      // 2
-  SETTING_HOUR_1,     // 3
-  SETTING_HOUR_2,     // 4
-  SETTING_MINUTE_1,   // 5
-  SETTING_MINUTE_2,   // 6
-  POISON,             // 7
+  SHOW_TIME,             // 0
+  SHOW_TEMP,             // 1
+  SHOW_HUMIDITY,         // 2
+  SETTING_HOUR_TENS,     // 3
+  SETTING_HOUR_ONES,     // 4
+  SETTING_MINUTE_TENS,   // 5
+  SETTING_MINUTE_ONES,   // 6
+  SET_TIME,              // 7
+  POISON,                // 8
   NUMBER_OF_MODES
 } clock_mode;
 
@@ -97,16 +104,18 @@ DS3231 myRTC;
 bool century = false;
 bool h12Flag;
 bool pmFlag;
+
 int hour = 0;
 int new_hour = 0;
+
 int minute = 0;
 int new_minute = 0;
+
 bool poison_mode_finished = false;
 
 // Rotary Encoder
-volatile int pos = 0;
-volatile int new_pos = 0;
-volatile int state = 0;
+volatile int new_direction = 0;
+volatile int last_direction = 0;
 RotaryEncoder encoder(rotary_clock_pin, rotary_data_pin, RotaryEncoder::LatchMode::FOUR3);
 
 
@@ -133,7 +142,7 @@ void setup() {
   // Initial components
   Wire.begin();               // Start the I2C interface
   am2320.begin();             // Humidity sensor
-  myRTC.setClockMode(false);  // Real Time Clock  mode = false: 24h, mode = true: 12h
+  myRTC.setClockMode(false);  // Real Time Clock mode = false: 24h, mode = true: 12h
 
   encoder.setPosition(0);     // Rotary encoder initialize
   attachInterrupt(digitalPinToInterrupt(rotary_switch_pin), change_mode, FALLING);
@@ -155,20 +164,24 @@ void loop() {
       show_humidity();
       break;
 
-    case SETTING_HOUR_1:
-      // TODO: setting hour tens
+    case SETTING_HOUR_TENS:
+      set_hour_tens();
       break;
 
-    case SETTING_HOUR_2:
-      // TODO: setting hour ones
+    case SETTING_HOUR_ONES:
+      set_hour_ones();
       break;
 
-    case SETTING_MINUTE_1:
-      //TODO: setting minute tens
+    case SETTING_MINUTE_TENS:
+      set_minute_tens();
       break;
 
-    case SETTING_MINUTE_2:
-      // TODO: setting minute ones
+    case SETTING_MINUTE_ONES:
+      set_minute_ones();
+      break;
+
+    case SET_TIME:
+      set_time();
       break;
 
     case POISON:
@@ -191,6 +204,32 @@ void loop() {
 } // end loop
 
 
+void turn_on_nixie_tube(int brightness) {
+  // turn on the nixie tube 
+  // and set brightness
+  analogWrite(nixie_brightness_pin, brightness);
+}
+
+void turn_off_nixie_tube() {
+  // turn off the nixie tube by
+  // set brightness to min
+  analogWrite(nixie_brightness_pin, 255);
+}
+
+void blinking_nixie_tube(int duration_ms) {
+  // blinking nixie tube every duration
+
+  // get current time
+  unsigned long current_time = millis();
+
+  if ( (current_time / duration_ms) % 2 == 0 ) {
+    turn_on_nixie_tube();
+  }
+  else {
+    turn_off_nixie_tube();
+  }
+}
+
 void show_time() {
 
   // get time from RTC
@@ -204,25 +243,27 @@ void show_time() {
   int minute_ones = (int)(minute % 10);
 
   // output
+  turn_on_nixie_tube();
   display(hour_tens, hour_ones, minute_tens, minute_ones);
 }
 
 void show_temp() {
 
   // get temp from AM2320
-  temp = am2320.readTemperature();
+  temperature = am2320.readTemperature();
 
 
   // transform to digits
-  int temp_int = (int)(temp * 100);
+  int temperature_int = (int)(temperature * 100);
 
-  int temp_tens = (int)(temp_int / 1000 % 10);
-  int temp_ones = (int)(temp_int / 100 % 10);
-  int temp_p_ones = (int)(temp_int / 10 % 10);
-  int temp_p_tens = (int)(temp_int / 1 % 10);
+  int temperature_tens   = (int)(temperature_int / 1000 % 10);
+  int temperature_ones   = (int)(temperature_int /  100 % 10);
+  int temperature_p_ones = (int)(temperature_int /   10 % 10);
+  int temperature_p_tens = (int)(temperature_int /    1 % 10);
 
   // output
-  display(temp_tens, temp_ones, temp_p_ones, temp_p_tens);
+  turn_on_nixie_tube();
+  display(temperature_tens, temperature_ones, temperature_p_ones, temperature_p_tens);
 }
 
 void show_humidity() {
@@ -233,12 +274,13 @@ void show_humidity() {
   // transform to digits
   int humidity_int = (int)(temp * 100);
 
-  int humidity_tens = (int)(humidity_int / 1000 % 10);
-  int humidity_ones = (int)(humidity_int / 100 % 10);
-  int humidity_p_ones = (int)(humidity_int / 10 % 10);
-  int humidity_p_tens = (int)(humidity_int / 1 % 10);
+  int humidity_tens   = (int)(humidity_int / 1000 % 10);
+  int humidity_ones   = (int)(humidity_int /  100 % 10);
+  int humidity_p_ones = (int)(humidity_int /   10 % 10);
+  int humidity_p_tens = (int)(humidity_int /    1 % 10);
 
   // output
+  turn_on_nixie_tube();
   display(humidity_tens, humidity_ones, humidity_p_ones, humidity_p_tens);
 }
 
@@ -268,12 +310,20 @@ void change_mode() {
     idle_start_time = millis();
   }
 
+  // initialize when entering setting mode
+  if (clock_mode == SETTING_HOUR_TENS) {
+    new_hour = hour;
+    new_minute = minute;
+  }
+
 }
 
 void idle_check() {
   // check if in idle time
+  unsigned long current_time = millis();
+
+  // if idle time exceeded, go back to show time mode
   if (clock_mode != SHOW_TIME) {
-    unsigned long current_time = millis();
     if (current_time - idle_start_time >= IDLE_TIME) {
       clock_mode = SHOW_TIME;
     }
@@ -285,6 +335,7 @@ void poison() {
   // loop through digits 0-9
   int i;
   for ( i=0 ; i<10 ; i++ ) {
+    turn_on_nixie_tube();
     display(i, i, i, i);
     delay(500);
   }
@@ -310,5 +361,182 @@ void poison_check() {
 
   if ( minute != 0) {
     poison_mode_finished = false;
+  }
+}
+
+void set_time() {
+  // set time to RTC
+  myRTC.setHour(new_hour);
+  myRTC.setMinute(new_minute);
+}
+
+void set_hour_tens() {
+
+  // get old time from RTC
+  int hour_tens = (int)(hour / 10);
+  int hour_ones = (int)(hour % 10);
+  int minute_tens = (int)(minute / 10);
+  int minute_ones = (int)(minute % 10);
+
+  int new_hour_tens = (int)(new_hour / 10);
+  
+  // read rotary encoder
+  encoder.tick();
+  new_direction = (int)encoder.getDirection();
+  
+  // update hour tens based on rotary encoder direction
+  if (new_direction != last_direction) {
+
+    // reset idle timer
+    idle_start_time = millis();
+    
+    // update hour tens
+    // possible value: 00, 01, 02, ..., 23
+    // max value is 2
+    new_hour_tens = update_digit(hour_tens, new_direction, 2);
+
+    last_direction = new_direction;
+  }
+  
+  // display new time blinking every 500ms
+  blinking_nixie_tube(500);
+  
+  // update new hour
+  display(new_hour_tens, hour_ones, minute_tens, minute_ones);
+  new_hour = new_hour_tens * 10 + hour_ones;
+}
+
+void set_hour_ones() {
+  
+  // get old time from RTC
+  int hour_tens = (int)(hour / 10);
+  int hour_ones = (int)(hour % 10);
+  int minute_tens = (int)(minute / 10);
+  int minute_ones = (int)(minute % 10);
+
+  int new_hour_tens = (int)(new_hour / 10);
+  int new_hour_ones = (int)(new_hour % 10);
+  
+  // read rotary encoder
+  encoder.tick();
+  new_direction = (int)encoder.getDirection();
+  
+  // update hour tens based on rotary encoder direction
+  if (new_direction != last_direction) {
+
+    // reset idle timer
+    idle_start_time = millis();
+
+    if (new_hour_tens == 2) {
+      // possible value: 20, 21, 22, 23
+      // max value is 3
+      new_hour_ones = update_digit(hour_ones, new_direction, 3);
+    }
+    else {
+      // possible value: 00, 01, 02, ..., 09, 10, 11, ..., 19
+      // max value is 9
+      new_hour_ones = update_digit(hour_ones, new_direction, 9);
+    }
+
+    last_direction = new_direction;
+  }
+  
+  // display new time blinking every 500ms
+  blinking_nixie_tube(500);
+  
+  // update new hour
+  display(new_hour_tens, new_hour_ones, minute_tens, minute_ones);
+  new_hour = new_hour_tens * 10 + new_hour_ones;
+}
+
+void set_minute_tens() {
+
+  // get old time from RTC
+  int hour_tens = (int)(hour / 10);
+  int hour_ones = (int)(hour % 10);
+  int minute_tens = (int)(minute / 10);
+  int minute_ones = (int)(minute % 10);
+
+  int new_hour_tens = (int)(new_hour / 10);
+  int new_hour_ones = (int)(new_hour % 10);
+  int new_minute_tens = (int)(new_minute / 10);
+  
+  // read rotary encoder
+  encoder.tick();
+  new_direction = (int)encoder.getDirection();
+  
+  // update hour tens based on rotary encoder direction
+  if (new_direction != last_direction) {
+
+    // reset idle timer
+    idle_start_time = millis();
+    
+    // update minute tens
+    // possible value: 00, 01, ..., 59
+    // max value is 5
+    new_minute_tens = update_digit(minute_tens, new_direction, 5);
+    last_direction = new_direction;
+  }
+  
+  // display new time blinking every 500ms
+  blinking_nixie_tube(500);
+  
+  // update new hour
+  display(new_hour_tens, new_hour_ones, new_minute_tens, minute_ones);
+  new_minute = new_minute_tens * 10 + minute_ones;
+}
+
+void set_minute_ones() {
+  
+  // get old time from RTC
+  int hour_tens = (int)(hour / 10);
+  int hour_ones = (int)(hour % 10);
+  int minute_tens = (int)(minute / 10);
+  int minute_ones = (int)(minute % 10);
+
+  int new_hour_tens = (int)(new_hour / 10);
+  int new_hour_ones = (int)(new_hour % 10);
+  int new_minute_tens = (int)(new_minute / 10);
+  int new_minute_ones = (int)(new_minute % 10);
+
+  // read rotary encoder
+  encoder.tick();
+  new_direction = (int)encoder.getDirection();
+  
+  // update hour tens based on rotary encoder direction
+  if (new_direction != last_direction) {
+
+    // reset idle timer
+    idle_start_time = millis();
+
+    // update minute tens
+    // possible value: 00, 01, ..., 59
+    // max value is 9
+    new_minute_ones = update_digit(minute_ones, new_direction, 9);
+    last_direction = new_direction;
+  }
+  
+  // display new time blinking every 500ms
+  blinking_nixie_tube(500);
+  
+  // update new hour
+  display(new_hour_tens, new_hour_ones, new_minute_tens, new_minute_ones);
+  new_hour = new_minute_tens * 10 + new_minute_ones;
+}
+
+
+int update_digit(int value, int direction, int max_value) {
+  
+  // clockwise (CW): plus
+  if (direction == 1) {
+    return (value + 1) % (max_value + 1);
+  }
+  // counterclockwise (CCW): minus
+  else if (direction == -1) {
+    return (value - 1 + (max_value + 1)) % (max_value + 1);
+  }
+  // no rotation
+  else {
+    return value;
   }
 }
