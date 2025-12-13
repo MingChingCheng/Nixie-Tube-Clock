@@ -12,7 +12,7 @@ volatile int new_pos = 0;
 
 // Setup a RotaryEncoder with 4 steps per latch for the 2 signal input pins:
 // increment for every step is "1"
-// couterclockwise(CCW): minus
+// counterclockwise(CCW): minus
 // clockwise(CW): plus
 RotaryEncoder encoder(PIN_RE_CLK, PIN_RE_DT, RotaryEncoder::LatchMode::FOUR3);
 
@@ -30,7 +30,7 @@ void setup()
   Serial.begin(115200);
   while (! Serial)
   {
-    delay(10);  // wait untill serila port prepared
+    delay(10);  // wait until serial port prepared
   };
 
   Serial.println("SimplePollRotator example for the RotaryEncoder library.");
