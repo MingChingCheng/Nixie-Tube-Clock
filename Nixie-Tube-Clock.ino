@@ -89,7 +89,6 @@ volatile enum CLOCK_MODE {
   SETTING_MINUTE_TENS,   // 5
   SETTING_MINUTE_ONES,   // 6
   SET_TIME,              // 7
-  POISON,                // 8
   NUMBER_OF_MODES
 } clock_mode;
 
@@ -182,10 +181,6 @@ void loop() {
 
     case SET_TIME:
       set_time();
-      break;
-
-    case POISON:
-      poison();
       break;
       
     default:
@@ -323,11 +318,23 @@ void idle_check() {
   unsigned long current_time = millis();
 
   // if idle time exceeded, go back to show time mode
-  if (clock_mode != SHOW_TIME) {
+  if (clock_mode == SHOW_TEMP ||
+      clock_mode == SHOW_HUMIDITY ) {
     if (current_time - idle_start_time >= IDLE_TIME) {
       clock_mode = SHOW_TIME;
     }
   }
+
+  // if in setting mode and idle time exceeded, go to set time mode
+  if (clock_mode == SETTING_HOUR_TENS ||
+      clock_mode == SETTING_HOUR_ONES ||
+      clock_mode == SETTING_MINUTE_TENS ||
+      clock_mode == SETTING_MINUTE_ONES ) {
+    if (current_time - idle_start_time >= IDLE_TIME) {
+      clock_mode = SET_TIME;
+    }
+  }
+
 }
 
 void poison() {
@@ -337,7 +344,7 @@ void poison() {
   for ( i=0 ; i<10 ; i++ ) {
     turn_on_nixie_tube();
     display(i, i, i, i);
-    delay(500);
+    delay(450);
   }
 
   // return to show time mode
@@ -368,6 +375,29 @@ void set_time() {
   // set time to RTC
   myRTC.setHour(new_hour);
   myRTC.setMinute(new_minute);
+
+  // retrieve time from RTC
+  hour = myRTC.getHour(h12Flag, pmFlag);
+  minute = myRTC.getMinute();
+
+  int hour_tens = (int)(hour / 10);
+  int hour_ones = (int)(hour % 10);
+  int minute_tens = (int)(minute / 10);
+  int minute_ones = (int)(minute % 10);
+
+  display(new_hour_tens, hour_ones, minute_tens, minute_ones);
+
+  // blink quickly to indicate time is set
+  int i = 0;
+  for ( i=0 ; i<2 ; i++ ) {
+    turn_off_nixie_tube();
+    delay(200);
+    turn_on_nixie_tube();
+    delay(200);
+  }
+
+  // return to show time mode
+  clock_mode = SHOW_TIME;
 }
 
 void set_hour_tens() {
