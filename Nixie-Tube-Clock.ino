@@ -96,7 +96,7 @@ volatile enum CLOCK_MODE {
 // Humidity sensor
 Adafruit_AM2320 am2320 = Adafruit_AM2320();
 float humidity = 0;
-float temp = 0;
+float temperature = 0;
 
 // Real Time Clock
 DS3231 myRTC;
@@ -267,7 +267,7 @@ void show_humidity() {
   humidity = am2320.readHumidity();
 
   // transform to digits
-  int humidity_int = (int)(temp * 100);
+  int humidity_int = (int)(humidity * 100);
 
   int humidity_tens   = (int)(humidity_int / 1000 % 10);
   int humidity_ones   = (int)(humidity_int /  100 % 10);
@@ -363,7 +363,7 @@ void poison_check() {
   
   if ( minute == 0) {
     poison_mode_finished = true;
-    clock_mode = POISON;
+    poison();
   }
 
   if ( minute != 0) {
@@ -385,7 +385,7 @@ void set_time() {
   int minute_tens = (int)(minute / 10);
   int minute_ones = (int)(minute % 10);
 
-  display(new_hour_tens, hour_ones, minute_tens, minute_ones);
+  display(hour_tens, hour_ones, minute_tens, minute_ones);
 
   // blink quickly to indicate time is set
   int i = 0;
