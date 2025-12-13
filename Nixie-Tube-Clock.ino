@@ -1,4 +1,5 @@
 // This code is designed with Arduino Nano
+// Display time in 24-hour format on 4-digit Nixie tube
 
 
 /* Include libraries */
@@ -21,8 +22,19 @@ void show_time();
 void show_temp();
 void show_humidity();
 void display(int a, int b, int c);
+
 void change_mode();
 void idle_check();
+
+void poison();
+void poison_check();
+
+void set_time();
+void set_hour_1();
+void set_hour_2();
+void set_minute_1();
+void set_minute_2();
+
 
 
 /* Define Pins */
@@ -89,6 +101,7 @@ int hour = 0;
 int new_hour = 0;
 int minute = 0;
 int new_minute = 0;
+bool poison_mode_finished = false;
 
 // Rotary Encoder
 volatile int pos = 0;
@@ -103,10 +116,11 @@ RotaryEncoder encoder(rotary_clock_pin, rotary_data_pin, RotaryEncoder::LatchMod
 void setup() {
 
   // Define pin mode
+  pinMode(nixie_brightness_pin, OUTPUT);
   pinMode(latch_pin, OUTPUT);
   pinMode(clock_pin, OUTPUT);
   pinMode(data_pin, OUTPUT);
-  pinMode(nixie_brightness_pin, OUTPUT);
+  
 
   pinMode(led_brightness_pin, OUTPUT);
   pinMode(led_red_pin, OUTPUT);
@@ -120,8 +134,8 @@ void setup() {
   Wire.begin();               // Start the I2C interface
   am2320.begin();             // Humidity sensor
   myRTC.setClockMode(false);  // Real Time Clock  mode = false: 24h, mode = true: 12h
-  encoder.setPosition(0);     // Rotary encoder initialize
 
+  encoder.setPosition(0);     // Rotary encoder initialize
   attachInterrupt(digitalPinToInterrupt(rotary_switch_pin), change_mode, FALLING);
 }
 
@@ -158,7 +172,7 @@ void loop() {
       break;
 
     case POISON:
-      // TODO: poison mode
+      poison();
       break;
       
     default:
@@ -168,10 +182,13 @@ void loop() {
 
   } // end switch
 
+
+  poison_check();
   idle_check();
+  
   delay(10);
 
-}
+} // end loop
 
 
 void show_time() {
@@ -189,7 +206,6 @@ void show_time() {
   // output
   display(hour_tens, hour_ones, minute_tens, minute_ones);
 }
-
 
 void show_temp() {
 
@@ -226,7 +242,6 @@ void show_humidity() {
   display(humidity_tens, humidity_ones, humidity_p_ones, humidity_p_tens);
 }
 
-
 void display(int a, int b, int c, int d) {
 
   // convert digits to binary format
@@ -242,7 +257,6 @@ void display(int a, int b, int c, int d) {
   // wait for display
   delay(50);
 }
-
 
 void change_mode() {
   // change to next mode
@@ -263,5 +277,38 @@ void idle_check() {
     if (current_time - idle_start_time >= IDLE_TIME) {
       clock_mode = SHOW_TIME;
     }
+  }
+}
+
+void poison() {
+
+  // loop through digits 0-9
+  int i;
+  for ( i=0 ; i<10 ; i++ ) {
+    display(i, i, i, i);
+    delay(500);
+  }
+
+  // return to show time mode
+  clock_mode = SHOW_TIME;
+}
+
+void poison_check() {
+
+  // Go to poison mode at every hour
+
+  // check if already ran poison mode this hour
+  if (poison_mode_finished == true) {
+    return;
+  }
+
+  
+  if ( minute == 0) {
+    poison_mode_finished = true;
+    clock_mode = POISON;
+  }
+
+  if ( minute != 0) {
+    poison_mode_finished = false;
   }
 }
