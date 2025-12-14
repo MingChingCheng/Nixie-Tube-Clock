@@ -284,8 +284,8 @@ void show_humidity() {
 void display(int a, int b, int c, int d) {
 
   // convert digits to binary format
-  byte low_Byte = (a << 4) | (b);
-  byte high_Byte = (c << 4) | (d);
+  byte low_Byte  = (b << 4) | (a);
+  byte high_Byte = (d << 4) | (c);
 
   // sending data to two 74HC595 ICs
   digitalWrite(latch_pin, LOW);                        // pull down "latch pin" before sending data
