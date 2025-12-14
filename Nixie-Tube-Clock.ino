@@ -337,7 +337,7 @@ void idle_check() {
 void poison() {
   
   // Set the brightness to max
-  turn_on_nixie_tube(0);
+  turn_on_nixie_tube();
   led_set_color(255, 0, 255, 0); // purple
   // loop through digits 0-9
   int i;
