@@ -19,7 +19,7 @@ const int LED_BRIGHTNESS = 50;   // brightness level (0-255), 0 is the brightest
 const int IDLE_TIME = 30000;     // 30 seconds
 
 /* Define functions */
-void blinking_nixie_tube(int duration_ms = 500);
+void blinking_nixie_tube(int duration_ms);
 void turn_on_nixie_tube();
 void turn_off_nixie_tube();
 
@@ -42,7 +42,7 @@ void set_minute_tens();
 void set_minute_ones();
 int update_digit(int value, int direction, int max_value);
 
-void led_set_color(int red, int green, int blue, int brightness = LED_BRIGHTNESS);
+void led_set_color(int red, int green, int blue);
 
 
 /* Define Pins */
@@ -255,7 +255,7 @@ void show_temp() {
 
   // output
   turn_on_nixie_tube();
-  led_set_color(255, 120, 0); // red orange
+  led_set_color(255, 5, 0); // red orange
   display(temperature_tens, temperature_ones, temperature_p_ones, temperature_p_tens);
 }
 
@@ -274,7 +274,7 @@ void show_humidity() {
 
   // output
   turn_on_nixie_tube();
-  led_set_color(0, 150, 255); // light blue
+  led_set_color(0, 50, 250); // light blue
   display(humidity_tens, humidity_ones, humidity_p_ones, humidity_p_tens);
   
 }
@@ -338,7 +338,7 @@ void poison() {
   
   // Set the brightness to max
   turn_on_nixie_tube();
-  led_set_color(255, 0, 255, 0); // purple
+  led_set_color(110, 0, 190); // purple
   // loop through digits 0-9
   int i;
   for ( i=0 ; i<10 ; i++ ) {
@@ -564,15 +564,14 @@ int update_digit(int value, int direction, int max_value) {
   }
 }
 
-void led_set_color(int red, int green, int blue, int brightness) {
-  // set LED color with brightness control
+void led_set_color(int red, int green, int blue) {
 
-  // set brightness
-  analogWrite(led_brightness_pin, brightness);
+  // set on/off
+  digitalWrite(led_brightness_pin, HIGH);
 
   // set color
-  analogWrite(led_red_pin, red);
-  analogWrite(led_green_pin, green);
-  analogWrite(led_blue_pin, blue);
+  analogWrite(led_red_pin, (255 - red));
+  analogWrite(led_green_pin, (255 - green));
+  analogWrite(led_blue_pin, (255 - blue));
 
 }
