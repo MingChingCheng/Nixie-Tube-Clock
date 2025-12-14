@@ -20,7 +20,7 @@ const int IDLE_TIME = 30000;     // 30 seconds
 
 /* Define functions */
 void blinking_nixie_tube(int duration_ms = 500);
-void turn_on_nixie_tube(int brightness = NIXIE_BRIGHTNESS);
+void turn_on_nixie_tube();
 void turn_off_nixie_tube();
 
 
@@ -197,16 +197,14 @@ void loop() {
 } // end loop
 
 
-void turn_on_nixie_tube(int brightness) {
+void turn_on_nixie_tube() {
   // turn on the nixie tube 
-  // and set brightness
-  analogWrite(nixie_brightness_pin, brightness);
+  digitalWrite(nixie_brightness_pin, LOW);
 }
 
 void turn_off_nixie_tube() {
   // turn off the nixie tube by
-  // set brightness to min
-  analogWrite(nixie_brightness_pin, 255);
+  digitalWrite(nixie_brightness_pin, HIGH);
 }
 
 void blinking_nixie_tube(int duration_ms) {
