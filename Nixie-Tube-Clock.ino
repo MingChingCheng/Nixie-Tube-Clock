@@ -190,7 +190,7 @@ void loop() {
   poison_check();
   idle_check();
   
-  delay(10);
+  delay(50);
 
 } // end loop
 
@@ -286,9 +286,6 @@ void display(int a, int b, int c, int d) {
   shiftOut(data_pin, clock_pin, MSBFIRST, high_Byte);  // sending data to farther 74HC595
   shiftOut(data_pin, clock_pin, MSBFIRST, low_Byte);   // sending data to closer 74HC595
   digitalWrite(latch_pin, HIGH);                       // pull up "latch pin" after sending data
-
-  // wait for display
-  delay(50);
 }
 
 void change_mode() {
@@ -334,36 +331,33 @@ void idle_check() {
 }
 
 void poison() {
+  
+  // Set the brightness to max
+  turn_on_nixie_tube(0);
 
   // loop through digits 0-9
   int i;
   for ( i=0 ; i<10 ; i++ ) {
-    turn_on_nixie_tube();
     display(i, i, i, i);
     delay(450);
   }
 
-  // return to show time mode
-  clock_mode = SHOW_TIME;
 }
 
 void poison_check() {
 
-  // Go to poison mode at every hour
-
-  // check if already ran poison mode this hour
-  if (poison_mode_finished == true) {
-    return;
-  }
-
+  // only run poison mode in show time mode
+  if (clock_mode == SHOW_TIME) {
   
-  if ( minute == 0) {
-    poison_mode_finished = true;
-    poison();
-  }
+    // Go to poison mode at every hour
+    if ( minute == 0 && poison_mode_finished == false) {
+      poison_mode_finished = true;
+      poison();
+    }
 
-  if ( minute != 0) {
-    poison_mode_finished = false;
+    if ( minute != 0 ) {
+      poison_mode_finished = false;
+    }
   }
 }
 
@@ -408,7 +402,7 @@ void set_hour_tens() {
   
   // read rotary encoder
   encoder.tick();
-  new_direction = (int)encoder.getDirection();
+  new_direction = (int)(encoder.getDirection());
   
   // update hour tens based on rotary encoder direction
   if (new_direction != last_direction) {
@@ -445,7 +439,7 @@ void set_hour_ones() {
   
   // read rotary encoder
   encoder.tick();
-  new_direction = (int)encoder.getDirection();
+  new_direction = (int)(encoder.getDirection());
   
   // update hour tens based on rotary encoder direction
   if (new_direction != last_direction) {
@@ -489,7 +483,7 @@ void set_minute_tens() {
   
   // read rotary encoder
   encoder.tick();
-  new_direction = (int)encoder.getDirection();
+  new_direction = (int)(encoder.getDirection());
   
   // update hour tens based on rotary encoder direction
   if (new_direction != last_direction) {
@@ -527,7 +521,7 @@ void set_minute_ones() {
 
   // read rotary encoder
   encoder.tick();
-  new_direction = (int)encoder.getDirection();
+  new_direction = (int)(encoder.getDirection());
   
   // update hour tens based on rotary encoder direction
   if (new_direction != last_direction) {
@@ -549,7 +543,6 @@ void set_minute_ones() {
   display(new_hour_tens, new_hour_ones, new_minute_tens, new_minute_ones);
   new_hour = new_minute_tens * 10 + new_minute_ones;
 }
-
 
 int update_digit(int value, int direction, int max_value) {
   
