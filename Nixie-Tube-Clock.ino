@@ -42,7 +42,7 @@ void set_minute_tens();
 void set_minute_ones();
 int update_digit(int value, int direction, int max_value);
 
-void led_set_color(int red, int green, int blue, int brightness = LED_BRIGHTNESS);
+void led_set_color(int red, int green, int blue);
 
 
 /* Define Pins */
@@ -257,7 +257,7 @@ void show_temp() {
 
   // output
   turn_on_nixie_tube();
-  led_set_color(255, 120, 0); // red orange
+  led_set_color(255, 5, 0); // red orange
   display(temperature_tens, temperature_ones, temperature_p_ones, temperature_p_tens);
 }
 
@@ -276,7 +276,7 @@ void show_humidity() {
 
   // output
   turn_on_nixie_tube();
-  led_set_color(0, 150, 255); // light blue
+  led_set_color(0, 50, 250); // light blue
   display(humidity_tens, humidity_ones, humidity_p_ones, humidity_p_tens);
   
 }
@@ -340,7 +340,7 @@ void poison() {
   
   // Set the brightness to max
   turn_on_nixie_tube(0);
-  led_set_color(255, 0, 255, 0); // purple
+  led_set_color(110, 0, 190); // purple
   // loop through digits 0-9
   int i;
   for ( i=0 ; i<10 ; i++ ) {
