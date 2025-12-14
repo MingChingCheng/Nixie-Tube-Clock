@@ -566,15 +566,14 @@ int update_digit(int value, int direction, int max_value) {
   }
 }
 
-void led_set_color(int red, int green, int blue, int brightness) {
-  // set LED color with brightness control
+void led_set_color(int red, int green, int blue) {
 
-  // set brightness
-  analogWrite(led_brightness_pin, brightness);
+  // set on/off
+  digitalWrite(led_brightness_pin, HIGH);
 
   // set color
-  analogWrite(led_red_pin, red);
-  analogWrite(led_green_pin, green);
-  analogWrite(led_blue_pin, blue);
+  analogWrite(led_red_pin, (255 - red));
+  analogWrite(led_green_pin, (255 - green));
+  analogWrite(led_blue_pin, (255 - blue));
 
 }
