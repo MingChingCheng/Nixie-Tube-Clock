@@ -16,7 +16,7 @@
 
 const int NIXIE_BRIGHTNESS = 0;  // brightness level (0-255), 0 is the brightest
 const int LED_BRIGHTNESS = 50;   // brightness level (0-255), 0 is the brightest
-const int  IDLE_TIME = 30000;    // 30 seconds
+const int IDLE_TIME = 30000;     // 30 seconds
 
 /* Define functions */
 void blinking_nixie_tube(int duration_ms = 500);
@@ -41,6 +41,8 @@ void set_hour_ones();
 void set_minute_tens();
 void set_minute_ones();
 int update_digit(int value, int direction, int max_value);
+
+void led_set_color(int red, int green, int blue, int brightness = LED_BRIGHTNESS);
 
 
 /* Define Pins */
@@ -558,4 +560,17 @@ int update_digit(int value, int direction, int max_value) {
   else {
     return value;
   }
+}
+
+void led_set_color(int red, int green, int blue, int brightness) {
+  // set LED color with brightness control
+
+  // set brightness
+  analogWrite(led_brightness_pin, brightness);
+
+  // set color
+  analogWrite(led_red_pin, red);
+  analogWrite(led_green_pin, green);
+  analogWrite(led_blue_pin, blue);
+
 }
