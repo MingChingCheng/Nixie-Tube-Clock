@@ -1,7 +1,6 @@
 // This code is designed with Arduino Nano
 // Display time in 24-hour format on 4-digit Nixie tube
 
-
 /* Include libraries */
 // For Humidity Sensor AM2320
 #include <Adafruit_AM2320.h>
@@ -15,9 +14,9 @@
 // For Rotary Encoder
 #include <RotaryEncoder.h>
 
-#define NIXIE_BRIGHTNESS 0  // brightness level (0-255), 0 is the brightest
-#define LED_BRIGHTNESS 50   // brightness level (0-255), 0 is the brightest
-#define IDLE_TIME 30000     // 30 seconds
+const int NIXIE_BRIGHTNESS = 0;  // brightness level (0-255), 0 is the brightest
+const int LED_BRIGHTNESS = 50;   // brightness level (0-255), 0 is the brightest
+const int  IDLE_TIME = 30000;    // 30 seconds
 
 /* Define functions */
 void blinking_nixie_tube(int duration_ms = 500);
@@ -28,7 +27,7 @@ void turn_off_nixie_tube();
 void show_time();
 void show_temp();
 void show_humidity();
-void display(int a, int b, int c);
+void display(int a, int b, int c, int d);
 
 void change_mode();
 void idle_check();
@@ -46,28 +45,25 @@ int update_digit(int value, int direction, int max_value);
 
 /* Define Pins */
 // 74HC595
-
 const int latch_pin = 7;
 const int clock_pin = 4;
 const int data_pin = 2;
 
 // Nixie tube
-const int nixie_brightness_pin = 3;
+const int nixie_brightness_pin = 6;
 
 // LED
-// TODO: check led pin later
 const int led_brightness_pin = 13;
-const int led_red_pin = 9;
+const int led_red_pin = 11;
 const int led_green_pin = 10;
-const int led_blue_pin = 11;
+const int led_blue_pin = 9;
 
 // I2C
 const int SCL_pin = A5;
 const int SDA_pin = A4;
 
 // Rotary encoder
-// TODO: check rotary encoder pin later
-const int rotary_switch_pin = A2;
+const int rotary_switch_pin = 3;
 const int rotary_data_pin = A1;
 const int rotary_clock_pin = A0;
 
@@ -79,8 +75,9 @@ const int fan_pin = 5;
 
 // Mode
 unsigned long idle_start_time;  // record the start time of idle
+bool poison_mode_finished = false;
 
-volatile enum CLOCK_MODE {
+enum CLOCK_MODE {
   SHOW_TIME,             // 0
   SHOW_TEMP,             // 1
   SHOW_HUMIDITY,         // 2
@@ -90,8 +87,8 @@ volatile enum CLOCK_MODE {
   SETTING_MINUTE_ONES,   // 6
   SET_TIME,              // 7
   NUMBER_OF_MODES
-} clock_mode;
-
+};
+CLOCK_MODE clock_mode = SHOW_TIME;
 
 // Humidity sensor
 Adafruit_AM2320 am2320 = Adafruit_AM2320();
@@ -110,7 +107,6 @@ int new_hour = 0;
 int minute = 0;
 int new_minute = 0;
 
-bool poison_mode_finished = false;
 
 // Rotary Encoder
 volatile int new_direction = 0;
@@ -194,7 +190,7 @@ void loop() {
   poison_check();
   idle_check();
   
-  delay(10);
+  delay(50);
 
 } // end loop
 
@@ -290,15 +286,12 @@ void display(int a, int b, int c, int d) {
   shiftOut(data_pin, clock_pin, MSBFIRST, high_Byte);  // sending data to farther 74HC595
   shiftOut(data_pin, clock_pin, MSBFIRST, low_Byte);   // sending data to closer 74HC595
   digitalWrite(latch_pin, HIGH);                       // pull up "latch pin" after sending data
-
-  // wait for display
-  delay(50);
 }
 
 void change_mode() {
   // change to next mode
   // if at the last mode, go back to the first mode
-  clock_mode = (clock_mode + 1) % NUMBER_OF_MODES;
+  clock_mode = (CLOCK_MODE)((clock_mode + 1) % NUMBER_OF_MODES);
 
   // reset idle timer
   if (clock_mode != SHOW_TIME) {
@@ -338,36 +331,33 @@ void idle_check() {
 }
 
 void poison() {
+  
+  // Set the brightness to max
+  turn_on_nixie_tube(0);
 
   // loop through digits 0-9
   int i;
   for ( i=0 ; i<10 ; i++ ) {
-    turn_on_nixie_tube();
     display(i, i, i, i);
     delay(450);
   }
 
-  // return to show time mode
-  clock_mode = SHOW_TIME;
 }
 
 void poison_check() {
 
-  // Go to poison mode at every hour
-
-  // check if already ran poison mode this hour
-  if (poison_mode_finished == true) {
-    return;
-  }
-
+  // only run poison mode in show time mode
+  if (clock_mode == SHOW_TIME) {
   
-  if ( minute == 0) {
-    poison_mode_finished = true;
-    poison();
-  }
+    // Go to poison mode at every hour
+    if ( minute == 0 && poison_mode_finished == false) {
+      poison_mode_finished = true;
+      poison();
+    }
 
-  if ( minute != 0) {
-    poison_mode_finished = false;
+    if ( minute != 0 ) {
+      poison_mode_finished = false;
+    }
   }
 }
 
@@ -412,7 +402,7 @@ void set_hour_tens() {
   
   // read rotary encoder
   encoder.tick();
-  new_direction = (int)encoder.getDirection();
+  new_direction = (int)(encoder.getDirection());
   
   // update hour tens based on rotary encoder direction
   if (new_direction != last_direction) {
@@ -449,7 +439,7 @@ void set_hour_ones() {
   
   // read rotary encoder
   encoder.tick();
-  new_direction = (int)encoder.getDirection();
+  new_direction = (int)(encoder.getDirection());
   
   // update hour tens based on rotary encoder direction
   if (new_direction != last_direction) {
@@ -493,7 +483,7 @@ void set_minute_tens() {
   
   // read rotary encoder
   encoder.tick();
-  new_direction = (int)encoder.getDirection();
+  new_direction = (int)(encoder.getDirection());
   
   // update hour tens based on rotary encoder direction
   if (new_direction != last_direction) {
@@ -531,7 +521,7 @@ void set_minute_ones() {
 
   // read rotary encoder
   encoder.tick();
-  new_direction = (int)encoder.getDirection();
+  new_direction = (int)(encoder.getDirection());
   
   // update hour tens based on rotary encoder direction
   if (new_direction != last_direction) {
@@ -553,7 +543,6 @@ void set_minute_ones() {
   display(new_hour_tens, new_hour_ones, new_minute_tens, new_minute_ones);
   new_hour = new_minute_tens * 10 + new_minute_ones;
 }
-
 
 int update_digit(int value, int direction, int max_value) {
   
