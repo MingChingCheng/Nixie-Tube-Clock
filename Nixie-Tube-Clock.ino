@@ -63,9 +63,9 @@ const int SCL_pin = A5;
 const int SDA_pin = A4;
 
 // Rotary encoder
-const int rotary_switch_pin = A2;
+const int rotary_switch_pin = 3;
 const int rotary_data_pin = A1;
-const int rotary_clock_pin = 3;
+const int rotary_clock_pin = A0;
 
 // fan
 const int fan_pin = 5;
