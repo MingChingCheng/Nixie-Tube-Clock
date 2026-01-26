@@ -19,10 +19,9 @@ const int LED_BRIGHTNESS = 50;   // brightness level (0-255), 0 is the brightest
 const int IDLE_TIME = 30000;     // 30 seconds
 
 /* Define functions */
-void blinking_nixie_tube(int duration_ms);
+void blinking_nixie_tube(int duration_ms, int a, int b, int c, int d);
 void turn_on_nixie_tube();
 void turn_off_nixie_tube();
-
 
 void show_time();
 void show_temp();
@@ -105,19 +104,19 @@ bool pmFlag;
 
 int hour = 0;
 int new_hour = 0;
-
 int minute = 0;
 int new_minute = 0;
-
 
 // Rotary Encoder
 volatile int new_direction = 0;
 volatile int last_direction = 0;
 RotaryEncoder encoder(rotary_clock_pin, rotary_data_pin, RotaryEncoder::LatchMode::FOUR3);
 
-
-
-
+// Display digits
+int displayed_digit_a = 0;
+int displayed_digit_b = 0;
+int displayed_digit_c = 0;
+int displayed_digit_d = 0;
 
 void setup() {
 
@@ -140,6 +139,10 @@ void setup() {
   Wire.begin();               // Start the I2C interface
   am2320.begin();             // Humidity sensor
   myRTC.setClockMode(false);  // Real Time Clock mode = false: 24h, mode = true: 12h
+
+  // Set nixie tube always on
+  digitalWrite(nixie_brightness_pin, LOW);
+
 
   encoder.setPosition(0);     // Rotary encoder initialize
   attachInterrupt(digitalPinToInterrupt(rotary_switch_pin), change_mode, FALLING);
@@ -198,23 +201,23 @@ void loop() {
 
 
 void turn_on_nixie_tube() {
-  // turn on the nixie tube 
-  digitalWrite(nixie_brightness_pin, LOW);
+  // turn on the nixie tube by displaying the last digits
+  display(displayed_digit_a, displayed_digit_b, displayed_digit_c, displayed_digit_d);
 }
 
 void turn_off_nixie_tube() {
-  // turn off the nixie tube by
-  digitalWrite(nixie_brightness_pin, HIGH);
+  // turn off the nixie tube by sending invalid digits
+  display(10, 10, 10, 10); 
 }
 
-void blinking_nixie_tube(int duration_ms) {
+void blinking_nixie_tube(int duration_ms, int a, int b, int c, int d) {
   // blinking nixie tube every duration
 
   // get current time
   unsigned long current_time = millis();
 
   if ( (current_time / duration_ms) % 2 == 0 ) {
-    turn_on_nixie_tube();
+    display(a, b, c, d);
   }
   else {
     turn_off_nixie_tube();
@@ -234,7 +237,6 @@ void show_time() {
   int minute_ones = (int)(minute % 10);
 
   // output
-  turn_on_nixie_tube();
   led_set_color(0, 0, 0); // off
   display(hour_tens, hour_ones, minute_tens, minute_ones);
 }
@@ -254,7 +256,6 @@ void show_temp() {
   int temperature_p_tens = (int)(temperature_int /    1 % 10);
 
   // output
-  turn_on_nixie_tube();
   led_set_color(255, 5, 0); // red orange
   display(temperature_tens, temperature_ones, temperature_p_ones, temperature_p_tens);
 }
@@ -273,7 +274,6 @@ void show_humidity() {
   int humidity_p_tens = (int)(humidity_int /    1 % 10);
 
   // output
-  turn_on_nixie_tube();
   led_set_color(0, 50, 250); // light blue
   display(humidity_tens, humidity_ones, humidity_p_ones, humidity_p_tens);
   
@@ -284,6 +284,18 @@ void display(int a, int b, int c, int d) {
   // convert digits to binary format
   byte low_Byte  = (b << 4) | (a);
   byte high_Byte = (d << 4) | (c);
+
+  // store valid displayed digits
+  if ( a >=0 && a <=9 &&
+       b >=0 && b <=9 &&
+       c >=0 && c <=9 &&
+       d >=0 && d <=9 ) {
+    displayed_digit_a = a;
+    displayed_digit_b = b;
+    displayed_digit_c = c;
+    displayed_digit_d = d;
+  }
+
 
   // sending data to two 74HC595 ICs
   digitalWrite(latch_pin, LOW);                        // pull down "latch pin" before sending data
@@ -336,14 +348,13 @@ void idle_check() {
 
 void poison() {
   
-  // Set the brightness to max
-  turn_on_nixie_tube();
   led_set_color(110, 0, 190); // purple
+
   // loop through digits 0-9
   int i;
   for ( i=0 ; i<10 ; i++ ) {
     display(i, i, i, i);
-    delay(450);
+    delay(650);
   }
 
 }
@@ -379,14 +390,14 @@ void set_time() {
   int minute_tens = (int)(minute / 10);
   int minute_ones = (int)(minute % 10);
 
-  display(hour_tens, hour_ones, minute_tens, minute_ones);
+  
 
   // blink quickly to indicate time is set
   int i = 0;
   for ( i=0 ; i<2 ; i++ ) {
     turn_off_nixie_tube();
     delay(200);
-    turn_on_nixie_tube();
+    display(hour_tens, hour_ones, minute_tens, minute_ones);
     delay(200);
   }
 
@@ -423,10 +434,9 @@ void set_hour_tens() {
   }
   
   // display new time blinking every 500ms
-  blinking_nixie_tube(500);
+  blinking_nixie_tube(500, new_hour_tens, hour_ones, minute_tens, minute_ones);
   
   // update new hour
-  display(new_hour_tens, hour_ones, minute_tens, minute_ones);
   new_hour = new_hour_tens * 10 + hour_ones;
 }
 
@@ -466,10 +476,9 @@ void set_hour_ones() {
   }
   
   // display new time blinking every 500ms
-  blinking_nixie_tube(500);
+  blinking_nixie_tube(500, new_hour_tens, new_hour_ones, minute_tens, minute_ones);
   
   // update new hour
-  display(new_hour_tens, new_hour_ones, minute_tens, minute_ones);
   new_hour = new_hour_tens * 10 + new_hour_ones;
 }
 
@@ -503,10 +512,9 @@ void set_minute_tens() {
   }
   
   // display new time blinking every 500ms
-  blinking_nixie_tube(500);
+  blinking_nixie_tube(500, new_hour_tens, new_hour_ones, new_minute_tens, minute_ones);
   
   // update new hour
-  display(new_hour_tens, new_hour_ones, new_minute_tens, minute_ones);
   new_minute = new_minute_tens * 10 + minute_ones;
 }
 
@@ -541,10 +549,9 @@ void set_minute_ones() {
   }
   
   // display new time blinking every 500ms
-  blinking_nixie_tube(500);
+  blinking_nixie_tube(500, new_hour_tens, new_hour_ones, new_minute_tens, new_minute_ones);
   
   // update new hour
-  display(new_hour_tens, new_hour_ones, new_minute_tens, new_minute_ones);
   new_hour = new_minute_tens * 10 + new_minute_ones;
 }
 
