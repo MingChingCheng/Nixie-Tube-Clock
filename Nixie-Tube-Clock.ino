@@ -551,8 +551,8 @@ void set_minute_ones() {
   // display new time blinking every 500ms
   blinking_nixie_tube(500, new_hour_tens, new_hour_ones, new_minute_tens, new_minute_ones);
   
-  // update new hour
-  new_hour = new_minute_tens * 10 + new_minute_ones;
+  // update new minute
+  new_minute = new_minute_tens * 10 + new_minute_ones;
 }
 
 int update_digit(int value, int direction, int max_value) {
