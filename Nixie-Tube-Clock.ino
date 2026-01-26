@@ -237,7 +237,6 @@ void show_time() {
   int minute_ones = (int)(minute % 10);
 
   // output
-  turn_on_nixie_tube();
   led_set_color(0, 0, 0); // off
   display(hour_tens, hour_ones, minute_tens, minute_ones);
 }
@@ -257,7 +256,6 @@ void show_temp() {
   int temperature_p_tens = (int)(temperature_int /    1 % 10);
 
   // output
-  turn_on_nixie_tube();
   led_set_color(255, 5, 0); // red orange
   display(temperature_tens, temperature_ones, temperature_p_ones, temperature_p_tens);
 }
@@ -276,7 +274,6 @@ void show_humidity() {
   int humidity_p_tens = (int)(humidity_int /    1 % 10);
 
   // output
-  turn_on_nixie_tube();
   led_set_color(0, 50, 250); // light blue
   display(humidity_tens, humidity_ones, humidity_p_ones, humidity_p_tens);
   
@@ -288,11 +285,17 @@ void display(int a, int b, int c, int d) {
   byte low_Byte  = (b << 4) | (a);
   byte high_Byte = (d << 4) | (c);
 
-  // store displayed digits
-  displayed_digit_a = a;
-  displayed_digit_b = b;
-  displayed_digit_c = c;
-  displayed_digit_d = d;
+  // store valid displayed digits
+  if ( a >=0 && a <=9 &&
+       b >=0 && b <=9 &&
+       c >=0 && c <=9 &&
+       d >=0 && d <=9 ) {
+    displayed_digit_a = a;
+    displayed_digit_b = b;
+    displayed_digit_c = c;
+    displayed_digit_d = d;
+  }
+
 
   // sending data to two 74HC595 ICs
   digitalWrite(latch_pin, LOW);                        // pull down "latch pin" before sending data
@@ -345,9 +348,8 @@ void idle_check() {
 
 void poison() {
   
-  // Set the brightness to max
-  turn_on_nixie_tube();
   led_set_color(110, 0, 190); // purple
+
   // loop through digits 0-9
   int i;
   for ( i=0 ; i<10 ; i++ ) {
