@@ -469,7 +469,7 @@ void set_hour_ones() {
     else {
       // possible value: 00, 01, 02, ..., 09, 10, 11, ..., 19
       // max value is 9
-      new_hour_ones = update_digit(hour_ones, new_direction, 9);
+      new_hour_ones = update_digit(new_hour_ones, new_direction, 9);
     }
 
     last_direction = new_direction;
