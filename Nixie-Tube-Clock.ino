@@ -140,6 +140,10 @@ void setup() {
   am2320.begin();             // Humidity sensor
   myRTC.setClockMode(false);  // Real Time Clock mode = false: 24h, mode = true: 12h
 
+  // Set nixie tube always on
+  digitalWrite(nixie_brightness_pin, LOW);
+
+
   encoder.setPosition(0);     // Rotary encoder initialize
   attachInterrupt(digitalPinToInterrupt(rotary_switch_pin), change_mode, FALLING);
 }
@@ -198,12 +202,12 @@ void loop() {
 
 void turn_on_nixie_tube() {
   // turn on the nixie tube 
-  digitalWrite(nixie_brightness_pin, LOW);
+
 }
 
 void turn_off_nixie_tube() {
   // turn off the nixie tube by
-  digitalWrite(nixie_brightness_pin, HIGH);
+  display(10, 10, 10, 10); 
 }
 
 void blinking_nixie_tube(int duration_ms) {
@@ -289,7 +293,7 @@ void display(int a, int b, int c, int d) {
   displayed_digit_b = b;
   displayed_digit_c = c;
   displayed_digit_d = d;
-  
+
   // sending data to two 74HC595 ICs
   digitalWrite(latch_pin, LOW);                        // pull down "latch pin" before sending data
   shiftOut(data_pin, clock_pin, MSBFIRST, high_Byte);  // sending data to farther 74HC595
