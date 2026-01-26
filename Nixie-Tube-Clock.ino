@@ -23,7 +23,6 @@ void blinking_nixie_tube(int duration_ms);
 void turn_on_nixie_tube();
 void turn_off_nixie_tube();
 
-
 void show_time();
 void show_temp();
 void show_humidity();
@@ -105,19 +104,19 @@ bool pmFlag;
 
 int hour = 0;
 int new_hour = 0;
-
 int minute = 0;
 int new_minute = 0;
-
 
 // Rotary Encoder
 volatile int new_direction = 0;
 volatile int last_direction = 0;
 RotaryEncoder encoder(rotary_clock_pin, rotary_data_pin, RotaryEncoder::LatchMode::FOUR3);
 
-
-
-
+// Display digits
+int displayed_digit_a = 0;
+int displayed_digit_b = 0;
+int displayed_digit_c = 0;
+int displayed_digit_d = 0;
 
 void setup() {
 
@@ -285,6 +284,12 @@ void display(int a, int b, int c, int d) {
   byte low_Byte  = (b << 4) | (a);
   byte high_Byte = (d << 4) | (c);
 
+  // store displayed digits
+  displayed_digit_a = a;
+  displayed_digit_b = b;
+  displayed_digit_c = c;
+  displayed_digit_d = d;
+  
   // sending data to two 74HC595 ICs
   digitalWrite(latch_pin, LOW);                        // pull down "latch pin" before sending data
   shiftOut(data_pin, clock_pin, MSBFIRST, high_Byte);  // sending data to farther 74HC595
@@ -343,7 +348,7 @@ void poison() {
   int i;
   for ( i=0 ; i<10 ; i++ ) {
     display(i, i, i, i);
-    delay(450);
+    delay(650);
   }
 
 }
