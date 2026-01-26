@@ -201,12 +201,12 @@ void loop() {
 
 
 void turn_on_nixie_tube() {
-  // turn on the nixie tube 
-
+  // turn on the nixie tube by displaying the last digits
+  display(displayed_digit_a, displayed_digit_b, displayed_digit_c, displayed_digit_d);
 }
 
 void turn_off_nixie_tube() {
-  // turn off the nixie tube by
+  // turn off the nixie tube by sending invalid digits
   display(10, 10, 10, 10); 
 }
 
