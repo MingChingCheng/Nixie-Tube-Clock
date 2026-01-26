@@ -428,7 +428,7 @@ void set_hour_tens() {
     // update hour tens
     // possible value: 00, 01, 02, ..., 23
     // max value is 2
-    new_hour_tens = update_digit(hour_tens, new_direction, 2);
+    new_hour_tens = update_digit(new_hour_tens, new_direction, 2);
 
     last_direction = new_direction;
   }
@@ -464,12 +464,12 @@ void set_hour_ones() {
     if (new_hour_tens == 2) {
       // possible value: 20, 21, 22, 23
       // max value is 3
-      new_hour_ones = update_digit(hour_ones, new_direction, 3);
+      new_hour_ones = update_digit(new_hour_ones, new_direction, 3);
     }
     else {
       // possible value: 00, 01, 02, ..., 09, 10, 11, ..., 19
       // max value is 9
-      new_hour_ones = update_digit(hour_ones, new_direction, 9);
+      new_hour_ones = update_digit(new_hour_ones, new_direction, 9);
     }
 
     last_direction = new_direction;
@@ -507,7 +507,7 @@ void set_minute_tens() {
     // update minute tens
     // possible value: 00, 01, ..., 59
     // max value is 5
-    new_minute_tens = update_digit(minute_tens, new_direction, 5);
+    new_minute_tens = update_digit(new_minute_tens, new_direction, 5);
     last_direction = new_direction;
   }
   
@@ -544,15 +544,15 @@ void set_minute_ones() {
     // update minute tens
     // possible value: 00, 01, ..., 59
     // max value is 9
-    new_minute_ones = update_digit(minute_ones, new_direction, 9);
+    new_minute_ones = update_digit(new_minute_ones, new_direction, 9);
     last_direction = new_direction;
   }
   
   // display new time blinking every 500ms
   blinking_nixie_tube(500, new_hour_tens, new_hour_ones, new_minute_tens, new_minute_ones);
   
-  // update new hour
-  new_hour = new_minute_tens * 10 + new_minute_ones;
+  // update new minute
+  new_minute = new_minute_tens * 10 + new_minute_ones;
 }
 
 int update_digit(int value, int direction, int max_value) {
