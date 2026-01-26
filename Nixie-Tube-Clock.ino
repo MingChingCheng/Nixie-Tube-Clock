@@ -19,7 +19,7 @@ const int LED_BRIGHTNESS = 50;   // brightness level (0-255), 0 is the brightest
 const int IDLE_TIME = 30000;     // 30 seconds
 
 /* Define functions */
-void blinking_nixie_tube(int duration_ms);
+void blinking_nixie_tube(int duration_ms, int a, int b, int c, int d);
 void turn_on_nixie_tube();
 void turn_off_nixie_tube();
 
@@ -210,14 +210,14 @@ void turn_off_nixie_tube() {
   display(10, 10, 10, 10); 
 }
 
-void blinking_nixie_tube(int duration_ms) {
+void blinking_nixie_tube(int duration_ms, int a, int b, int c, int d) {
   // blinking nixie tube every duration
 
   // get current time
   unsigned long current_time = millis();
 
   if ( (current_time / duration_ms) % 2 == 0 ) {
-    turn_on_nixie_tube();
+    display(a, b, c, d);
   }
   else {
     turn_off_nixie_tube();
@@ -390,14 +390,14 @@ void set_time() {
   int minute_tens = (int)(minute / 10);
   int minute_ones = (int)(minute % 10);
 
-  display(hour_tens, hour_ones, minute_tens, minute_ones);
+  
 
   // blink quickly to indicate time is set
   int i = 0;
   for ( i=0 ; i<2 ; i++ ) {
     turn_off_nixie_tube();
     delay(200);
-    turn_on_nixie_tube();
+    display(hour_tens, hour_ones, minute_tens, minute_ones);
     delay(200);
   }
 
@@ -434,10 +434,9 @@ void set_hour_tens() {
   }
   
   // display new time blinking every 500ms
-  blinking_nixie_tube(500);
+  blinking_nixie_tube(500, new_hour_tens, hour_ones, minute_tens, minute_ones);
   
   // update new hour
-  display(new_hour_tens, hour_ones, minute_tens, minute_ones);
   new_hour = new_hour_tens * 10 + hour_ones;
 }
 
@@ -477,10 +476,9 @@ void set_hour_ones() {
   }
   
   // display new time blinking every 500ms
-  blinking_nixie_tube(500);
+  blinking_nixie_tube(500, new_hour_tens, new_hour_ones, minute_tens, minute_ones);
   
   // update new hour
-  display(new_hour_tens, new_hour_ones, minute_tens, minute_ones);
   new_hour = new_hour_tens * 10 + new_hour_ones;
 }
 
@@ -514,10 +512,9 @@ void set_minute_tens() {
   }
   
   // display new time blinking every 500ms
-  blinking_nixie_tube(500);
+  blinking_nixie_tube(500, new_hour_tens, new_hour_ones, new_minute_tens, minute_ones);
   
   // update new hour
-  display(new_hour_tens, new_hour_ones, new_minute_tens, minute_ones);
   new_minute = new_minute_tens * 10 + minute_ones;
 }
 
@@ -552,10 +549,9 @@ void set_minute_ones() {
   }
   
   // display new time blinking every 500ms
-  blinking_nixie_tube(500);
+  blinking_nixie_tube(500, new_hour_tens, new_hour_ones, new_minute_tens, new_minute_ones);
   
   // update new hour
-  display(new_hour_tens, new_hour_ones, new_minute_tens, new_minute_ones);
   new_hour = new_minute_tens * 10 + new_minute_ones;
 }
 
