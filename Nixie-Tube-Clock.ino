@@ -110,6 +110,7 @@ int new_minute = 0;
 // Rotary Encoder
 volatile int new_direction = 0;
 volatile int last_direction = 0;
+volatile unsigned long last_interrupt_time = 0;
 RotaryEncoder encoder(rotary_clock_pin, rotary_data_pin, RotaryEncoder::LatchMode::FOUR3);
 
 // Display digits
@@ -305,6 +306,16 @@ void display(int a, int b, int c, int d) {
 }
 
 void change_mode() {
+
+  // debounce: ignore if the interrupt occurs within 200ms of the last interrupt
+  unsigned long interrupt_time = millis();
+  if (interrupt_time - last_interrupt_time < 200) {
+    return;
+  }
+  
+  last_interrupt_time = interrupt_time;
+
+
   // change to next mode
   // if at the last mode, go back to the first mode
   clock_mode = (CLOCK_MODE)((clock_mode + 1) % NUMBER_OF_MODES);
