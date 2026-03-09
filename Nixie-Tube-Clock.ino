@@ -348,7 +348,7 @@ void idle_check() {
 
 void poison() {
   
-  led_set_color(110, 0, 190); // purple
+  led_set_color(128, 0, 220); // purple
 
   // loop through digits 0-9
   int i;
