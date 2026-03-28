@@ -138,12 +138,20 @@ void setup() {
 
   // Initial components
   Wire.begin();               // Start the I2C interface
+  
   am2320.begin();             // Humidity sensor
+  
+  clock_mode = SHOW_TIME;     // Real Time Clock
   myRTC.setClockMode(false);  // Real Time Clock mode = false: 24h, mode = true: 12h
+  hour = myRTC.getHour(h12Flag, pmFlag);
+  minute = myRTC.getMinute();
+
+
 
   // Set nixie tube always on
   digitalWrite(nixie_brightness_pin, LOW);
-
+  // poison mode will be triggered at power on
+  poison();
 
   encoder.setPosition(0);     // Rotary encoder initialize
   attachInterrupt(digitalPinToInterrupt(rotary_switch_pin), change_mode, FALLING);
