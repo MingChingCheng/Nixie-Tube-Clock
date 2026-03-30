@@ -16,8 +16,8 @@
 
 const int NIXIE_BRIGHTNESS = 0;  // brightness level (0-255), 0 is the brightest
 const int LED_BRIGHTNESS = 50;   // brightness level (0-255), 0 is the brightest
-const int IDLE_TIME = 30000;     // 30 seconds
-const int COOL_DOWN_TIME = 60000; // 60 seconds
+const unsigned long IDLE_TIME = 30000;       // 30 seconds
+const unsigned long COOL_DOWN_TIME = 60000;  // 60 seconds
 
 /* Define functions */
 void blinking_nixie_tube(int duration_ms, int a, int b, int c, int d);
@@ -122,11 +122,16 @@ int displayed_digit_c = 0;
 int displayed_digit_d = 0;
 
 // fan
-unsigned long fan_start_time;
+unsigned long fan_start_time = 0;
+bool fan_on = false;
 
 
 
 void setup() {
+
+  // Serial
+  Serial.begin(9600);
+  Serial.println("Nixie Tube Clock initialized.");
 
   // Define pin mode
   pinMode(nixie_brightness_pin, OUTPUT);
@@ -266,6 +271,12 @@ void show_temp() {
   float temperature_1 = am2320.readTemperature();
   float temperature_2 = myRTC.getTemperature();
   // take the higher temperature to display
+  if (isnan(temperature_1)) {
+    temperature_1 = 0.0;
+  }
+  if (isnan(temperature_2)) {
+    temperature_2 = 0.0;
+  }
   temperature = max(temperature_1, temperature_2);
 
   // transform to digits
@@ -620,21 +631,30 @@ void led_set_color(int red, int green, int blue) {
 
 void cool_down_check() {
 
+  // get temperature from AM2320 and RTC
   float temperature_1 = am2320.readTemperature();
   float temperature_2 = myRTC.getTemperature();
+  
+  // take the higher temperature to control the fan
+  if (isnan(temperature_1)) {
+    temperature_1 = 0.0;
+  }
+  if (isnan(temperature_2)) {
+    temperature_2 = 0.0;
+  }
   float temperature_high = max(temperature_1, temperature_2);
 
   unsigned long current_time = millis();
 
   // if high temperature is detected, reset the fan start time
-  if (temperature_high > 40) {
-    fan_start_time = millis();
+  if (temperature_high > 40.0) {
+    fan_start_time = current_time;
   }
 
   // make sure the fan is on for at least COOL_DOWN_TIME after high temperature is detected
   // since the fan is controlled by a PNP transistor
   // LOW is on and HIGH is off
-  if (current_time - fan_start_time <= COOL_DOWN_TIME) {
+  if ( ((current_time - fan_start_time) <= COOL_DOWN_TIME) ) {
     digitalWrite(fan_pin, LOW);
   }
   else {
