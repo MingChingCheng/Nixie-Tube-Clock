@@ -488,7 +488,7 @@ void set_hour_ones() {
   }
   
   // display new time blinking every 500ms
-  led_set_color(0, 255, 0);  // green
+  led_set_color(80, 240, 0);  // green yellow
   blinking_nixie_tube(500, new_hour_tens, new_hour_ones, minute_tens, minute_ones);
   
   // update new hour
@@ -525,7 +525,7 @@ void set_minute_tens() {
   }
   
   // display new time blinking every 500ms
-  led_set_color(0, 200, 155);  // green blue
+  led_set_color(0, 240, 80);  // green cyan
   blinking_nixie_tube(500, new_hour_tens, new_hour_ones, new_minute_tens, minute_ones);
   
   // update new hour
@@ -563,7 +563,7 @@ void set_minute_ones() {
   }
   
   // display new time blinking every 500ms
-  led_set_color(0, 0, 255);  // blue
+  led_set_color(0, 200, 155);  // blue green
   blinking_nixie_tube(500, new_hour_tens, new_hour_ones, new_minute_tens, new_minute_ones);
   
   // update new minute
