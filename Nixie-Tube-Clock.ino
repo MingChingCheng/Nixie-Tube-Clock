@@ -146,7 +146,8 @@ void setup() {
   hour = myRTC.getHour(h12Flag, pmFlag);
   minute = myRTC.getMinute();
 
-
+  // Set fan off at the beginning
+  digitalWrite(fan_pin, HIGH);
 
   // Set nixie tube always on
   digitalWrite(nixie_brightness_pin, LOW);
