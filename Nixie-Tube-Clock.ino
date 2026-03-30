@@ -17,6 +17,7 @@
 const int NIXIE_BRIGHTNESS = 0;  // brightness level (0-255), 0 is the brightest
 const int LED_BRIGHTNESS = 50;   // brightness level (0-255), 0 is the brightest
 const int IDLE_TIME = 30000;     // 30 seconds
+const int COOL_DOWN_TIME = 60000; // 60 seconds
 
 /* Define functions */
 void blinking_nixie_tube(int duration_ms, int a, int b, int c, int d);
@@ -119,6 +120,11 @@ int displayed_digit_a = 0;
 int displayed_digit_b = 0;
 int displayed_digit_c = 0;
 int displayed_digit_d = 0;
+
+// fan
+unsigned long fan_start_time;
+
+
 
 void setup() {
 
