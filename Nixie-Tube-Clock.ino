@@ -260,9 +260,11 @@ void show_time() {
 
 void show_temp() {
 
-  // get temp from AM2320
-  temperature = am2320.readTemperature();
-
+  // get temp from AM2320 and RTC
+  float temperature_1 = am2320.readTemperature();
+  float temperature_2 = myRTC.getTemperature();
+  // take the higher temperature to display
+  temperature = max(temperature_1, temperature_2);
 
   // transform to digits
   int temperature_int = (int)(temperature * 100);
