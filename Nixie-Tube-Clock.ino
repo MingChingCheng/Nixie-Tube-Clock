@@ -43,6 +43,7 @@ int update_digit(int value, int direction, int max_value);
 
 void led_set_color(int red, int green, int blue);
 
+void cool_down();
 
 /* Define Pins */
 // 74HC595
@@ -604,4 +605,19 @@ void led_set_color(int red, int green, int blue) {
   analogWrite(led_green_pin, (255 - green));
   analogWrite(led_blue_pin, (255 - blue));
 
+}
+
+void cool_down() {
+
+  float temperature_1 = am2320.readTemperature();
+  float temperature_2 = myRTC.getTemperature();
+
+  // since the fan is controlled by a PNP transistor
+  // LOW is on and HIGH is off
+  if (temperature_1 > 40 || temperature_2 > 40) {
+    digitalWrite(fan_pin, LOW);
+  }
+  else { 
+    digitalWrite(fan_pin, HIGH);
+  }
 }
