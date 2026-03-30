@@ -44,7 +44,7 @@ int update_digit(int value, int direction, int max_value);
 
 void led_set_color(int red, int green, int blue);
 
-void cool_down();
+void cool_down_check();
 
 /* Define Pins */
 // 74HC595
@@ -210,7 +210,8 @@ void loop() {
 
   poison_check();
   idle_check();
-  
+  cool_down_check();
+
   delay(50);
 
 } // end loop
@@ -613,17 +614,25 @@ void led_set_color(int red, int green, int blue) {
 
 }
 
-void cool_down() {
+void cool_down_check() {
 
   float temperature_1 = am2320.readTemperature();
   float temperature_2 = myRTC.getTemperature();
 
+  unsigned long current_time = millis();
+
+  // if temperature is high, reset the fan start time
+  if (temperature_1 > 40 || temperature_2 > 40) {
+    fan_start_time = millis();
+  }
+
+  // make sure the fan is on for at least COOL_DOWN_TIME after high temperature is detected
   // since the fan is controlled by a PNP transistor
   // LOW is on and HIGH is off
-  if (temperature_1 > 40 || temperature_2 > 40) {
+  if (current_time - fan_start_time <= COOL_DOWN_TIME) {
     digitalWrite(fan_pin, LOW);
   }
-  else { 
+  else {
     digitalWrite(fan_pin, HIGH);
   }
 }
