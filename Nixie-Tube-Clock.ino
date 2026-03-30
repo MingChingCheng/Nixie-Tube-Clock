@@ -622,11 +622,12 @@ void cool_down_check() {
 
   float temperature_1 = am2320.readTemperature();
   float temperature_2 = myRTC.getTemperature();
+  float temperature_high = max(temperature_1, temperature_2);
 
   unsigned long current_time = millis();
 
-  // if temperature is high, reset the fan start time
-  if (temperature_1 > 40 || temperature_2 > 40) {
+  // if high temperature is detected, reset the fan start time
+  if (temperature_high > 40) {
     fan_start_time = millis();
   }
 
