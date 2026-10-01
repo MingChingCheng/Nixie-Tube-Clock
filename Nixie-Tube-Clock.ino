@@ -16,11 +16,13 @@
 
 
 // Constants
-const int NIXIE_BRIGHTNESS = 0;  // brightness level (0-255), 0 is the brightest
-const int LED_BRIGHTNESS = 50;   // brightness level (0-255), 0 is the brightest
-const int IDLE_TIME = 30000;     // 30 seconds
-const int COOLING_DURATION = 10000; // 10 seconds
+const int NIXIE_BRIGHTNESS = 0;                // brightness level (0-255), 0 is the brightest
+const int LED_BRIGHTNESS = 50;                 // brightness level (0-255), 0 is the brightest
+const int IDLE_TIME = 30000;                   // 30 seconds
+const int COOLING_DURATION = 10000;            // 10 seconds
 const float HIGH_TEMPERATURE_THRESHOLD = 40.0; // 40 degrees Celsius
+const float TEMP_CALI_AM2320 = -10.0;          // temperature calibration value for AM2320
+const float TEMP_CALI_RTC = -10.0;             // temperature calibration value for RTC
 
 
 /* Define functions */
@@ -30,6 +32,8 @@ void turn_off_nixie_tube();
 
 void show_time();
 void show_temp();
+float get_temp();
+
 void show_humidity();
 void display(int a, int b, int c, int d);
 
@@ -263,11 +267,7 @@ void show_time() {
 
 void show_temp() {
 
-  // get temp from AM2320
-  float temperature_am2320 = am2320.readTemperature();
 
-  // get temp form RTC
-  float temperature_rtc = myRTC.getTemperature();
 
   // use the higher temperature reading
   if (temperature_am2320 > temperature_rtc) {
@@ -276,6 +276,7 @@ void show_temp() {
   else {
     temperature = temperature_rtc;
   }
+
 
   // transform to digits
   int temperature_int = (int)(temperature * 100);
@@ -288,6 +289,57 @@ void show_temp() {
   // output
   led_set_color(255, 5, 0); // red orange
   display(temperature_tens, temperature_ones, temperature_p_ones, temperature_p_tens);
+}
+
+float get_temp() {
+  // get temp from AM2320
+  float temp_am2320       = am2320.readTemperature();
+  bool  temp_am2320_valid = false;
+
+  // check if the temperature reading from AM2320 is valid
+  if (isnan(temp_am2320)) {
+    temp_am2320_valid = false;
+  }
+  else {
+    temp_am2320_valid = true;
+    temp_am2320 += TEMP_CALI_AM2320;
+  }
+
+  // get temp form RTC
+  float temp_rtc       = myRTC.getTemperature();
+  bool  temp_rtc_valid = false;
+
+  // check if the temperature reading from RTC is valid
+  if (temp_rtc == -9999) {
+    temp_rtc_valid = false;
+  }
+  else {
+    temp_rtc_valid = true;
+    temp_rtc += TEMP_CALI_RTC;
+  }
+
+  // return a valid temperature reading
+  if (temp_am2320_valid && temp_rtc_valid) {
+    // if both are valid, return the higher one
+    if (temp_am2320 > temp_rtc) {
+      return temp_am2320;
+    }
+    else {
+      return temp_rtc;
+    }
+  }
+  else if (temp_am2320_valid && !temp_rtc_valid) {
+    // if only AM2320 is valid, return it
+    return temp_am2320;
+  }
+  else if (!temp_am2320_valid && temp_rtc_valid) {
+    // if only RTC is valid, return it
+    return temp_rtc;
+  }
+  else {
+    // if both are invalid, return an impossible value
+    return 0;
+  }
 }
 
 void show_humidity() {
