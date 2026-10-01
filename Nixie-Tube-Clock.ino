@@ -14,9 +14,16 @@
 // For Rotary Encoder
 #include <RotaryEncoder.h>
 
-const int NIXIE_BRIGHTNESS = 0;  // brightness level (0-255), 0 is the brightest
-const int LED_BRIGHTNESS = 50;   // brightness level (0-255), 0 is the brightest
-const int IDLE_TIME = 30000;     // 30 seconds
+
+// Constants
+const int NIXIE_BRIGHTNESS = 0;                // brightness level (0-255), 0 is the brightest
+const int LED_BRIGHTNESS = 50;                 // brightness level (0-255), 0 is the brightest
+const int IDLE_TIME = 30000;                   // 30 seconds
+const int COOLING_DURATION = 10000;            // 10 seconds
+const float HIGH_TEMPERATURE_THRESHOLD = 40.0; // 40 degrees Celsius
+const float TEMP_CALI_AM2320 = -10.0;          // temperature calibration value for AM2320
+const float TEMP_CALI_RTC = -10.0;             // temperature calibration value for RTC
+
 
 /* Define functions */
 void blinking_nixie_tube(int duration_ms, int a, int b, int c, int d);
@@ -24,8 +31,13 @@ void turn_on_nixie_tube();
 void turn_off_nixie_tube();
 
 void show_time();
+
 void show_temp();
+float get_temp();
+
 void show_humidity();
+float get_humidity();
+
 void display(int a, int b, int c, int d);
 
 void change_mode();
@@ -43,7 +55,7 @@ int update_digit(int value, int direction, int max_value);
 
 void led_set_color(int red, int green, int blue);
 
-void cool_down();
+void cooling_check();
 
 /* Define Pins */
 // 74HC595
@@ -119,6 +131,9 @@ int displayed_digit_a = 0;
 int displayed_digit_b = 0;
 int displayed_digit_c = 0;
 int displayed_digit_d = 0;
+
+// Fan control
+unsigned long fan_start_time; // record the start time of fan cooling
 
 void setup() {
 
@@ -205,7 +220,8 @@ void loop() {
 
   poison_check();
   idle_check();
-  
+  cooling_check();
+
   delay(50);
 
 } // end loop
@@ -254,9 +270,7 @@ void show_time() {
 
 void show_temp() {
 
-  // get temp from AM2320
-  temperature = am2320.readTemperature();
-
+  temperature = get_temp();
 
   // transform to digits
   int temperature_int = (int)(temperature * 100);
@@ -271,10 +285,60 @@ void show_temp() {
   display(temperature_tens, temperature_ones, temperature_p_ones, temperature_p_tens);
 }
 
+float get_temp() {
+  // get temp from AM2320
+  float temp_am2320       = am2320.readTemperature();
+  bool  temp_am2320_valid = false;
+
+  // check if the temperature reading from AM2320 is valid
+  if (isnan(temp_am2320)) {
+    temp_am2320_valid = false;
+  }
+  else {
+    temp_am2320_valid = true;
+    temp_am2320 += TEMP_CALI_AM2320;
+  }
+
+  // get temp form RTC
+  float temp_rtc       = myRTC.getTemperature();
+  bool  temp_rtc_valid = false;
+
+  // check if the temperature reading from RTC is valid
+  if (temp_rtc == -9999) {
+    temp_rtc_valid = false;
+  }
+  else {
+    temp_rtc_valid = true;
+    temp_rtc += TEMP_CALI_RTC;
+  }
+
+  // return a valid temperature reading
+  if (temp_am2320_valid && temp_rtc_valid) {
+    // if both are valid, return the higher one
+    if (temp_am2320 > temp_rtc) {
+      return temp_am2320;
+    }
+    else {
+      return temp_rtc;
+    }
+  }
+  else if (temp_am2320_valid && !temp_rtc_valid) {
+    // if only AM2320 is valid, return it
+    return temp_am2320;
+  }
+  else if (!temp_am2320_valid && temp_rtc_valid) {
+    // if only RTC is valid, return it
+    return temp_rtc;
+  }
+  else {
+    // if both are invalid, return an impossible value
+    return 0;
+  }
+}
+
 void show_humidity() {
 
-  // get humidity from AM2320
-  humidity = am2320.readHumidity();
+  humidity = get_humidity();
 
   // transform to digits
   int humidity_int = (int)(humidity * 100);
@@ -288,6 +352,29 @@ void show_humidity() {
   led_set_color(0, 50, 250); // light blue
   display(humidity_tens, humidity_ones, humidity_p_ones, humidity_p_tens);
   
+}
+
+float get_humidity() {
+  // get humidity from AM2320
+  float humidity     = am2320.readHumidity();
+  float temp_inside  = am2320.readTemperature();
+  float temp_outside = temp_inside + TEMP_CALI_AM2320;
+
+  // calibrate humidity based on temperature
+  float vapor_sat_inside  = vapor_pressure_saturation(temp_inside);
+  float vapor_sat_outside = vapor_pressure_saturation(temp_outside);
+
+  return humidity * vapor_sat_inside / vapor_sat_outside;
+}
+
+float vapor_pressure_saturation(float temp) {
+  // https://en.wikipedia.org/wiki/Vapour_pressure_of_water
+  // RH = P_w / P_ws * 100%
+  float e = 2.718;
+  float power = (18.678 - temp / 234.5) * (temp / (257.14 + temp));
+  float vapor_pressure_saturation = 0.61121 * pow(e, power);
+
+  return vapor_pressure_saturation;
 }
 
 void display(int a, int b, int c, int d) {
@@ -602,23 +689,43 @@ void led_set_color(int red, int green, int blue) {
   digitalWrite(led_brightness_pin, HIGH);
 
   // set color
+  // since the LED is controlled by a PNP transistor
+  // 0 is highest brightness
+  // 255 is lowest brightness
   analogWrite(led_red_pin, (255 - red));
   analogWrite(led_green_pin, (255 - green));
   analogWrite(led_blue_pin, (255 - blue));
 
 }
 
-void cool_down() {
+void cooling_check() {
+  // When the temperature is too high,
+  // turn on the fan for a constant duration to cool down the system
 
-  float temperature_1 = am2320.readTemperature();
-  float temperature_2 = myRTC.getTemperature();
+  float temperature_am2320 = am2320.readTemperature();
+  float temperature_rtc = myRTC.getTemperature();
+  unsigned long current_time = millis();
+  bool fan_on = false;
+
+  if (temperature_am2320 > HIGH_TEMPERATURE_THRESHOLD
+      || temperature_rtc > HIGH_TEMPERATURE_THRESHOLD) {
+
+    fan_start_time = current_time; // reset the start time of fan cooling
+    fan_on = true;
+  }
+  else {
+    digitalWrite(fan_pin, HIGH); // turn off the fan
+  }
 
   // since the fan is controlled by a PNP transistor
   // LOW is on and HIGH is off
-  if (temperature_1 > 40 || temperature_2 > 40) {
-    digitalWrite(fan_pin, LOW);
-  }
-  else { 
-    digitalWrite(fan_pin, HIGH);
+  if (fan_on) {
+    if (current_time - fan_start_time < COOLING_DURATION) {
+      digitalWrite(fan_pin, LOW); // turn on the fan
+    }
+    else {
+      fan_on = false;
+      digitalWrite(fan_pin, HIGH); // turn off the fan
+    }
   }
 }
