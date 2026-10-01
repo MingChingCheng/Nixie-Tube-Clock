@@ -267,16 +267,7 @@ void show_time() {
 
 void show_temp() {
 
-
-
-  // use the higher temperature reading
-  if (temperature_am2320 > temperature_rtc) {
-    temperature = temperature_am2320;
-  }
-  else {
-    temperature = temperature_rtc;
-  }
-
+  temperature = get_temp();
 
   // transform to digits
   int temperature_int = (int)(temperature * 100);
