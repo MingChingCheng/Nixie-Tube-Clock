@@ -31,10 +31,13 @@ void turn_on_nixie_tube();
 void turn_off_nixie_tube();
 
 void show_time();
+
 void show_temp();
 float get_temp();
 
 void show_humidity();
+float get_humidity();
+
 void display(int a, int b, int c, int d);
 
 void change_mode();
@@ -335,8 +338,7 @@ float get_temp() {
 
 void show_humidity() {
 
-  // get humidity from AM2320
-  humidity = am2320.readHumidity();
+  humidity = get_humidity();
 
   // transform to digits
   int humidity_int = (int)(humidity * 100);
@@ -350,6 +352,29 @@ void show_humidity() {
   led_set_color(0, 50, 250); // light blue
   display(humidity_tens, humidity_ones, humidity_p_ones, humidity_p_tens);
   
+}
+
+float get_humidity() {
+  // get humidity from AM2320
+  float humidity     = am2320.readHumidity();
+  float temp_inside  = am2320.readTemperature();
+  float temp_outside = temp_inside + TEMP_CALI_AM2320;
+
+  // calibrate humidity based on temperature
+  float vapor_sat_inside  = vapor_pressure_saturation(temp_inside);
+  float vapor_sat_outside = vapor_pressure_saturation(temp_outside);
+
+  return humidity * vapor_sat_inside / vapor_sat_outside;
+}
+
+float vapor_pressure_saturation(float temp) {
+  // https://en.wikipedia.org/wiki/Vapour_pressure_of_water
+  // RH = P_w / P_ws * 100%
+  float e = 2.718;
+  float power = (18.678 - temp / 234.5) * (temp / (257.14 + temp));
+  float vapor_pressure_saturation = 0.61121 * pow(e, power);
+
+  return vapor_pressure_saturation;
 }
 
 void display(int a, int b, int c, int d) {
