@@ -14,9 +14,14 @@
 // For Rotary Encoder
 #include <RotaryEncoder.h>
 
+
+// Constants
 const int NIXIE_BRIGHTNESS = 0;  // brightness level (0-255), 0 is the brightest
 const int LED_BRIGHTNESS = 50;   // brightness level (0-255), 0 is the brightest
 const int IDLE_TIME = 30000;     // 30 seconds
+const int COOLING_DURATION = 10000; // 10 seconds
+const float HIGH_TEMPERATURE_THRESHOLD = 40.0; // 40 degrees Celsius
+
 
 /* Define functions */
 void blinking_nixie_tube(int duration_ms, int a, int b, int c, int d);
@@ -43,7 +48,7 @@ int update_digit(int value, int direction, int max_value);
 
 void led_set_color(int red, int green, int blue);
 
-void cool_down();
+void cooling_check();
 
 /* Define Pins */
 // 74HC595
@@ -119,6 +124,9 @@ int displayed_digit_a = 0;
 int displayed_digit_b = 0;
 int displayed_digit_c = 0;
 int displayed_digit_d = 0;
+
+// Fan control
+unsigned long fan_start_time; // record the start time of fan cooling
 
 void setup() {
 
@@ -205,7 +213,8 @@ void loop() {
 
   poison_check();
   idle_check();
-  
+  cooling_check();
+
   delay(50);
 
 } // end loop
@@ -255,8 +264,18 @@ void show_time() {
 void show_temp() {
 
   // get temp from AM2320
-  temperature = am2320.readTemperature();
+  float temperature_am2320 = am2320.readTemperature();
 
+  // get temp form RTC
+  float temperature_rtc = myRTC.getTemperature();
+
+  // use the higher temperature reading
+  if (temperature_am2320 > temperature_rtc) {
+    temperature = temperature_am2320;
+  }
+  else {
+    temperature = temperature_rtc;
+  }
 
   // transform to digits
   int temperature_int = (int)(temperature * 100);
@@ -602,23 +621,43 @@ void led_set_color(int red, int green, int blue) {
   digitalWrite(led_brightness_pin, HIGH);
 
   // set color
+  // since the LED is controlled by a PNP transistor
+  // 0 is highest brightness
+  // 255 is lowest brightness
   analogWrite(led_red_pin, (255 - red));
   analogWrite(led_green_pin, (255 - green));
   analogWrite(led_blue_pin, (255 - blue));
 
 }
 
-void cool_down() {
+void cooling_check() {
+  // When the temperature is too high,
+  // turn on the fan for a constant duration to cool down the system
 
-  float temperature_1 = am2320.readTemperature();
-  float temperature_2 = myRTC.getTemperature();
+  float temperature_am2320 = am2320.readTemperature();
+  float temperature_rtc = myRTC.getTemperature();
+  unsigned long current_time = millis();
+  bool fan_on = false;
+
+  if (temperature_am2320 > HIGH_TEMPERATURE_THRESHOLD
+      || temperature_rtc > HIGH_TEMPERATURE_THRESHOLD) {
+
+    fan_start_time = current_time; // reset the start time of fan cooling
+    fan_on = true;
+  }
+  else {
+    digitalWrite(fan_pin, HIGH); // turn off the fan
+  }
 
   // since the fan is controlled by a PNP transistor
   // LOW is on and HIGH is off
-  if (temperature_1 > 40 || temperature_2 > 40) {
-    digitalWrite(fan_pin, LOW);
-  }
-  else { 
-    digitalWrite(fan_pin, HIGH);
+  if (fan_on) {
+    if (current_time - fan_start_time < COOLING_DURATION) {
+      digitalWrite(fan_pin, LOW); // turn on the fan
+    }
+    else {
+      fan_on = false;
+      digitalWrite(fan_pin, HIGH); // turn off the fan
+    }
   }
 }
