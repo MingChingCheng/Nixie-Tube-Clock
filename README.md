@@ -4,15 +4,19 @@ A project of Nixie tube clock.
 
 ## Hardware
 
-- Powered by 12V DC charger
+- Powered by 12V DC charger (5.5x2.1)
+- Whole module cost ~0.25A or 3W power
+- 4 nixie tubes - IN-8
+- Use Real time clock - DS3231
+- Use Humidity sensor - AM2320
 
 ## Functions
 
-- Clock with hour and minute
-- Temperature
-- Humidity
+- Time mode, display time with hour and minute
+- Temperature mode
+- Humidity mode
 - Time setting mode
-- de-poisoning the nixie tube every hour
+- De-poisoning the nixie tubes every hour
 
 ## Library
 
