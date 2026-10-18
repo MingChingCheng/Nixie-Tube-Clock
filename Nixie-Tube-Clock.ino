@@ -20,9 +20,9 @@ const int NIXIE_BRIGHTNESS = 0;                // brightness level (0-255), 0 is
 const int LED_BRIGHTNESS = 50;                 // brightness level (0-255), 0 is the brightest
 const int IDLE_TIME = 30000;                   // 30 seconds
 const int COOLING_DURATION = 10000;            // 10 seconds
-const float HIGH_TEMPERATURE_THRESHOLD = 40.0; // 40 degrees Celsius
-const float TEMP_CALI_AM2320 = -10.0;          // temperature calibration value for AM2320
-const float TEMP_CALI_RTC = -10.0;             // temperature calibration value for RTC
+const float HIGH_TEMPERATURE_THRESHOLD = 50.0; // temperature threshold for fan cooling
+const float TEMP_CALI_AM2320 = -15.5;          // temperature calibration value for AM2320
+const float TEMP_CALI_RTC = -16.5;             // temperature calibration value for RTC
 
 
 /* Define functions */
